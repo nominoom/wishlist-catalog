@@ -66,6 +66,12 @@ const toastContainer = document.getElementById("toastContainer");
 
 // Initialize
 function init() {
+  // Support /#admin or #/admin sublink
+  if (window.location.hash.toLowerCase().includes("admin") || window.location.pathname.endsWith("/admin")) {
+    window.location.href = "admin.html";
+    return;
+  }
+
   loadData();
   setupTheme();
   setupEventListeners();
@@ -322,11 +328,37 @@ function openItemModal(filteredIndex) {
 
   // Tags
   const tagsContainer = document.getElementById("modalTagsContainer");
-  tagsContainer.innerHTML = (item.tags || []).map(t => `<span class="tag-pill font-mono">#${escapeHtml(t)}</span>`).join('') || '<span style="color:var(--text-tertiary); font-size:0.8rem;">No tags</span>';
+  if (tagsContainer) {
+    tagsContainer.innerHTML = (item.tags || []).map(t => `<span class="tag-pill font-mono">#${escapeHtml(t)}</span>`).join('') || '<span style="color:var(--text-tertiary); font-size:0.8rem;">No tags</span>';
+  }
+
+  // Reference Links
+  const refLinksSec = document.getElementById("modalRefLinksSection");
+  const refLinksContainer = document.getElementById("modalRefLinksContainer");
+  if (refLinksSec && refLinksContainer) {
+    if (item.reference_links && item.reference_links.length > 0) {
+      refLinksSec.style.display = "block";
+      refLinksContainer.innerHTML = item.reference_links.map(r => `
+        <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="tag-pill font-mono" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;">
+          <i data-feather="external-link" style="width:12px;height:12px;"></i> ${escapeHtml(r.label || 'Reference')}
+        </a>
+      `).join('');
+    } else {
+      refLinksSec.style.display = "none";
+    }
+  }
 
   // Amazon Link
   const amazonLink = document.getElementById("modalAmazonLink");
-  amazonLink.href = item.product_url || `https://www.amazon.com/dp/${item.asin}`;
+  if (amazonLink) {
+    amazonLink.href = item.product_url || `https://www.amazon.com/dp/${item.asin}`;
+  }
+
+  // Deep Admin Edit Link
+  const adminDeepEdit = document.getElementById("modalAdminDeepEdit");
+  if (adminDeepEdit) {
+    adminDeepEdit.href = `admin.html?edit=${encodeURIComponent(item.id || item.asin)}`;
+  }
 
   // Switch to View Mode
   modalViewSection.style.display = "block";

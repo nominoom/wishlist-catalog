@@ -26,6 +26,9 @@
       </div>
 
       <div class="header-actions">
+        <a href="admin.html" class="btn btn-sm font-mono" id="btnAdminLink" title="Open Admin Management Console (/admin)">
+          <i data-feather="settings"></i> /ADMIN
+        </a>
         <button class="btn btn-sm" id="btnAddNewItem" title="Add New Item">
           <i data-feather="plus"></i> ADD ITEM
         </button>
@@ -201,13 +204,21 @@
               <div class="modal-tags-container" id="modalTagsContainer"></div>
             </div>
 
+            <div class="modal-description-section" id="modalRefLinksSection" style="margin-top: 1rem; display: none;">
+              <div class="section-label">REFERENCE & EXTERNAL LINKS</div>
+              <div class="modal-tags-container" id="modalRefLinksContainer"></div>
+            </div>
+
             <div class="modal-action-bar">
               <a href="#" target="_blank" rel="noopener" id="modalAmazonLink" class="btn btn-primary" style="flex:1; justify-content:center;">
                 <i data-feather="shopping-bag"></i> VIEW ON AMAZON
               </a>
               <button class="btn" id="modalEditBtn">
-                <i data-feather="edit-2"></i> EDIT DETAILS
+                <i data-feather="edit-2"></i> QUICK EDIT
               </button>
+              <a href="admin.html" id="modalAdminDeepEdit" class="btn btn-icon" title="Open in /admin for full tag & link manager">
+                <i data-feather="settings"></i>
+              </a>
             </div>
           </div>
 

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WISHLIST ARCHIVE // ADMIN CONSOLE</title>
+  <meta name="description" content="Administration panel for Wishlist Archive: edit descriptions, manage reference links, create and assign tags, and configure catalog metadata.">
+  
+  <!-- Base & Admin Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
+  
+  <!-- Feather Icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body class="admin-body">
+
+  <!-- Admin Header -->
+  <header class="header admin-header">
+    <div class="header-top">
+      <div class="brand-section">
+        <span class="brand-badge admin-badge">ADMIN // ROOT</span>
+        <div>
+          <h1 class="brand-title">CATALOG MANAGER</h1>
+        </div>
+        <span class="brand-sub font-mono" id="adminHeaderStats">72 ITEMS / 0 TAGS</span>
+      </div>
+
+      <div class="header-actions">
+        <a href="index.html" class="btn btn-sm" title="Return to Public Catalog">
+          <i data-feather="arrow-left"></i> VIEW CATALOG
+        </a>
+        <button class="btn btn-sm btn-primary" id="btnAdminAddNew" title="Create a New Item">
+          <i data-feather="plus"></i> NEW ITEM
+        </button>
+        <button class="btn btn-sm" id="btnAdminExportImport" title="JSON Backup and Restore">
+          <i data-feather="database"></i> BACKUP / SYNC
+        </button>
+        <button class="btn btn-sm btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+          <i data-feather="sun" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Admin Navigation Tabs -->
+    <div class="admin-tabs-bar">
+      <div class="admin-tabs-container">
+        <button class="admin-tab-btn active" data-tab="items-tab">
+          <i data-feather="list"></i> ITEMS & DESCRIPTIONS (<span id="tabItemsCount">0</span>)
+        </button>
+        <button class="admin-tab-btn" data-tab="tags-tab">
+          <i data-feather="tag"></i> TAG TAXONOMY (<span id="tabTagsCount">0</span>)
+        </button>
+        <button class="admin-tab-btn" data-tab="links-tab">
+          <i data-feather="link"></i> REFERENCE LINKS
+        </button>
+        <button class="admin-tab-btn" data-tab="batch-tab">
+          <i data-feather="layers"></i> BATCH TOOLS
+        </button>
+      </div>
+      <div class="admin-quick-stats font-mono">
+        <span>STORAGE: <strong id="storageStatusText">LOCAL</strong></span>
+        <button class="btn-text-link" id="btnQuickSaveDisk" title="Save snapshot to localStorage">
+          <i data-feather="save"></i> SYNC ALL
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Admin Container -->
+  <main class="admin-main">
+    
+    <!-- ========================================== -->
+    <!-- TAB 1: ITEMS & DESCRIPTIONS MANAGEMENT -->
+    <!-- ========================================== -->
+    <section id="items-tab" class="admin-tab-content active">
+      
+      <!-- Filter & Search Toolbar -->
+      <div class="admin-toolbar">
+        <div class="admin-search-box">
+          <i data-feather="search" class="search-icon"></i>
+          <input type="text" id="adminSearchInput" class="search-input" placeholder="Filter by title, ASIN, category, tag, description..." autocomplete="off">
+          <span class="search-shortcut">/</span>
+        </div>
+
+        <div class="admin-filter-group">
+          <select id="adminCategoryFilter" class="custom-select admin-select">
+            <option value="ALL">CATEGORY: ALL</option>
+          </select>
+
+          <select id="adminTagFilter" class="custom-select admin-select">
+            <option value="ALL">TAG: ALL</option>
+          </select>
+
+          <select id="adminPriorityFilter" class="custom-select admin-select">
+            <option value="ALL">PRIORITY: ALL</option>
+            <option value="High">HIGH</option>
+            <option value="Medium">MEDIUM</option>
+            <option value="Low">LOW</option>
+          </select>
+
+          <select id="adminStatusFilter" class="custom-select admin-select">
+            <option value="ALL">STATUS: ALL</option>
+            <option value="Wanted">WANTED</option>
+            <option value="Purchased">PURCHASED</option>
+            <option value="Reserved">RESERVED</option>
+            <option value="Archived">ARCHIVED</option>
+          </select>
+
+          <select id="adminSortSelect" class="custom-select admin-select">
+            <option value="default">SORT: DEFAULT</option>
+            <option value="title-asc">TITLE: A → Z</option>
+            <option value="title-desc">TITLE: Z → A</option>
+            <option value="price-desc">PRICE: HIGH → LOW</option>
+            <option value="price-asc">PRICE: LOW → HIGH</option>
+            <option value="tags-count">MOST TAGS</option>
+            <option value="no-desc">MISSING DESCRIPTION</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bulk Actions Bar (Sticky when items selected) -->
+      <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+        <div class="bulk-info">
+          <span class="font-mono" id="bulkSelectedCount">0 items selected</span>
+        </div>
+        <div class="bulk-buttons">
+          <button class="btn btn-sm" id="btnBulkAddTag"><i data-feather="plus"></i> Add Tag</button>
+          <button class="btn btn-sm" id="btnBulkRemoveTag"><i data-feather="minus"></i> Remove Tag</button>
+          <button class="btn btn-sm" id="btnBulkSetCategory"><i data-feather="folder"></i> Set Category</button>
+          <button class="btn btn-sm" id="btnBulkSetPriority"><i data-feather="flag"></i> Set Priority</button>
+          <button class="btn btn-sm btn-danger" id="btnBulkDelete"><i data-feather="trash-2"></i> Delete Selected</button>
+          <button class="btn btn-sm" id="btnBulkDeselectAll">Deselect All</button>
+        </div>
+      </div>
+
+      <!-- Items Table Summary Header -->
+      <div class="table-meta-row">
+        <div class="table-meta-left">
+          <label class="custom-checkbox-container">
+            <input type="checkbox" id="selectAllCheckbox">
+            <span class="checkbox-custom"></span>
+            <span class="font-mono text-xs">SELECT ALL MATCHING (<span id="filteredMatchCount">0</span>)</span>
+          </label>
+        </div>
+        <div class="table-meta-right font-mono text-xs">
+          <span>SHOWING <strong id="tableShowingCount">0</strong> OF <strong id="tableTotalCount">0</strong> ITEMS</span>
+        </div>
+      </div>
+
+      <!-- Items Admin Table -->
+      <div class="admin-table-container">
+        <table class="admin-table" id="adminItemsTable">
+          <thead>
+            <tr>
+              <th class="col-select" width="40"></th>
+              <th class="col-img" width="60">ITEM</th>
+              <th class="col-title">TITLE & ASIN</th>
+              <th class="col-desc">DESCRIPTION & REFS</th>
+              <th class="col-category" width="130">CATEGORY</th>
+              <th class="col-tags" width="220">TAGS</th>
+              <th class="col-price" width="100">PRICE / PRIORITY</th>
+              <th class="col-actions" width="130">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="adminItemsTableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty Table State -->
+      <div id="adminEmptyState" class="empty-state" style="display: none;">
+        <i data-feather="search" class="empty-icon"></i>
+        <h3>No items match your filter criteria</h3>
+        <p>Try clearing your search query or reset filter dropdowns.</p>
+        <button class="btn btn-sm" id="btnClearAdminFilters">CLEAR ALL FILTERS</button>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: TAG TAXONOMY & GLOBAL TAG MANAGER -->
+    <!-- ========================================== -->
+    <section id="tags-tab" class="admin-tab-content">
+      <div class="tags-manager-header">
+        <div>
+          <h2 class="section-title">GLOBAL TAG TAXONOMY</h2>
+          <p class="section-desc">Manage existing tags, create new tags, rename tags across all items, or clean up unused tags.</p>
+        </div>
+        <div class="tag-header-actions">
+          <button class="btn btn-sm btn-primary" id="btnCreateNewGlobalTag">
+            <i data-feather="plus"></i> CREATE NEW TAG
+          </button>
+        </div>
+      </div>
+
+      <!-- Tag Creation Card -->
+      <div class="admin-card tag-create-box">
+        <div class="tag-create-form">
+          <div class="form-group flex-1">
+            <label class="form-label font-mono">NEW TAG NAME(S) (Comma-separated for multiples)</label>
+            <div class="input-with-button">
+              <span class="input-prefix">#</span>
+              <input type="text" id="newGlobalTagInput" class="form-input" placeholder="e.g. mechanical-keyboard, wireless, desk-setup">
+              <button class="btn btn-sm btn-primary" id="btnAddGlobalTagSubmit">
+                <i data-feather="plus-circle"></i> ADD TO TAXONOMY
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags Cloud / Grid -->
+      <div class="tags-directory-header">
+        <div class="tags-search-wrap">
+          <i data-feather="search"></i>
+          <input type="text" id="tagSearchInput" class="search-input" placeholder="Filter tags...">
+        </div>
+        <span class="font-mono text-xs" id="tagsSummaryCount">0 UNIQUE TAGS</span>
+      </div>
+
+      <div class="tags-grid" id="tagsTaxonomyGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: REFERENCE LINKS MANAGER -->
+    <!-- ========================================== -->
+    <section id="links-tab" class="admin-tab-content">
+      <div class="tags-manager-header">
+        <div>
+          <h2 class="section-title">REFERENCE & EXTERNAL LINKS</h2>
+          <p class="section-desc">Audit and update primary Amazon store links, manufacturer pages, review videos, and technical specification links.</p>
+        </div>
+      </div>
+
+      <div class="admin-table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th width="70">ITEM</th>
+              <th>TITLE</th>
+              <th width="350">PRIMARY PRODUCT LINK</th>
+              <th>ADDITIONAL REFERENCE LINKS</th>
+              <th width="90">ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="referenceLinksTableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: BATCH TOOLS & DATA BACKUP -->
+    <!-- ========================================== -->
+    <section id="batch-tab" class="admin-tab-content">
+      <div class="batch-tools-grid">
+        
+        <!-- Tool 1: JSON Export & Backup -->
+        <div class="admin-card">
+          <div class="card-header-icon"><i data-feather="download"></i></div>
+          <h3 class="card-title">EXPORT CATALOG BACKUP</h3>
+          <p class="card-desc">Download your entire updated catalog as a JSON file or clean Markdown report. Perfect for git commits or local backups.</p>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-primary" id="btnAdminExportJSON"><i data-feather="file-text"></i> EXPORT JSON</button>
+            <button class="btn btn-sm" id="btnAdminExportMD"><i data-feather="code"></i> EXPORT MARKDOWN</button>
+            <button class="btn btn-sm" id="btnAdminExportCSV"><i data-feather="grid"></i> EXPORT CSV</button>
+          </div>
+        </div>
+
+        <!-- Tool 2: JSON Import -->
+        <div class="admin-card">
+          <div class="card-header-icon"><i data-feather="upload"></i></div>
+          <h3 class="card-title">IMPORT CATALOG DATA</h3>
+          <p class="card-desc">Import a previously exported JSON backup file. You can choose to merge with existing items or overwrite current localStorage.</p>
+          <input type="file" id="adminImportFileInput" accept=".json" style="display:none;">
+          <div class="card-actions">
+            <button class="btn btn-sm btn-primary" id="btnAdminTriggerImport"><i data-feather="folder"></i> SELECT JSON FILE</button>
+          </div>
+        </div>
+
+        <!-- Tool 3: Category Taxonomy Batch Normalizer -->
+        <div class="admin-card">
+          <div class="card-header-icon"><i data-feather="folder"></i></div>
+          <h3 class="card-title">CATEGORY MANAGER</h3>
+          <p class="card-desc">View all categories and quickly batch-rename a category across all associated items in the catalog.</p>
+          <div class="category-batch-list" id="categoryBatchList">
+            <!-- Dynamic categories list -->
+          </div>
+        </div>
+
+        <!-- Tool 4: Reset to Default -->
+        <div class="admin-card danger-card">
+          <div class="card-header-icon"><i data-feather="alert-triangle"></i></div>
+          <h3 class="card-title">FACTORY RESET</h3>
+          <p class="card-desc">Clear all custom edits, tag associations, and custom descriptions, reverting back to the original scraped Amazon catalog.</p>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-danger" id="btnAdminResetDefault"><i data-feather="rotate-ccw"></i> RESET TO DEFAULTS</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- ITEM EDIT DRAWER / MODAL -->
+  <!-- ========================================== -->
+  <div class="admin-drawer-overlay" id="adminEditDrawerOverlay">
+    <div class="admin-drawer" id="adminEditDrawer">
+      
+      <div class="drawer-header">
+        <div class="drawer-header-left">
+          <span class="font-mono text-xs drawer-badge" id="drawerItemAsin">ASIN: —</span>
+          <h2 class="drawer-title" id="drawerItemTitle">Edit Item</h2>
+        </div>
+        <div class="drawer-header-right">
+          <button class="btn btn-icon btn-sm" id="btnCloseDrawer" title="Close Drawer (Esc)">
+            <i data-feather="x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="drawer-body">
+        <form id="drawerEditForm">
+          <input type="hidden" id="drawerItemId">
+
+          <!-- Image & Main Info Split -->
+          <div class="drawer-split-row">
+            <div class="drawer-image-preview-box">
+              <img id="drawerImagePreview" src="" alt="Product Preview" class="drawer-image">
+              <div class="form-group" style="margin-top: 0.75rem;">
+                <label class="form-label font-mono text-xs">IMAGE URL</label>
+                <input type="url" id="drawerInputImage" class="form-input text-xs font-mono" placeholder="https://...">
+              </div>
+            </div>
+
+            <div class="drawer-main-fields">
+              <!-- Title -->
+              <div class="form-group">
+                <label class="form-label font-mono text-xs required">ITEM TITLE</label>
+                <textarea id="drawerInputTitle" class="form-input form-textarea" rows="2" required placeholder="Full Product Title"></textarea>
+              </div>
+
+              <!-- Category, Price, Priority, Status -->
+              <div class="form-grid-4">
+                <div class="form-group">
+                  <label class="form-label font-mono text-xs">CATEGORY</label>
+                  <input type="text" id="drawerInputCategory" class="form-input" list="categoryDataList" placeholder="Category name">
+                  <datalist id="categoryDataList"></datalist>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-mono text-xs">PRICE DISPLAY</label>
+                  <input type="text" id="drawerInputPrice" class="form-input font-mono" placeholder="$0.00">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-mono text-xs">PRIORITY</label>
+                  <select id="drawerSelectPriority" class="form-input custom-select">
+                    <option value="High">HIGH</option>
+                    <option value="Medium">MEDIUM</option>
+                    <option value="Low">LOW</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label font-mono text-xs">STATUS</label>
+                  <select id="drawerSelectStatus" class="form-input custom-select">
+                    <option value="Wanted">WANTED</option>
+                    <option value="Purchased">PURCHASED</option>
+                    <option value="Reserved">RESERVED</option>
+                    <option value="Archived">ARCHIVED</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DESCRIPTION (Crucial Feature) -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label font-mono text-xs required">RICH DESCRIPTION / EDITORIAL NOTES</label>
+              <div class="desc-quick-tools font-mono text-xs">
+                <button type="button" class="btn-text-tool" id="btnDescFormatBold" title="Bold text">**B**</button>
+                <button type="button" class="btn-text-tool" id="btnDescFormatList" title="Bullet list">• List</button>
+                <button type="button" class="btn-text-tool" id="btnDescClear" title="Clear text">Clear</button>
+              </div>
+            </div>
+            <textarea id="drawerInputDescription" class="form-input form-textarea font-sans" rows="5" placeholder="Enter detailed description, rationale, key specs, why it was selected..."></textarea>
+          </div>
+
+          <!-- REFERENCE LINKS (Crucial Feature) -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label font-mono text-xs">REFERENCE & PRODUCT LINKS</label>
+              <button type="button" class="btn-text-tool font-mono" id="btnAddCustomRefLink">
+                <i data-feather="plus" style="width:12px;height:12px;"></i> Add Reference Link
+              </button>
+            </div>
+            
+            <!-- Primary Link -->
+            <div class="ref-link-row primary-link-row">
+              <span class="ref-link-tag font-mono">PRIMARY</span>
+              <input type="url" id="drawerInputProductUrl" class="form-input font-mono text-xs flex-1" placeholder="https://www.amazon.com/dp/...">
+              <a id="drawerBtnTestPrimaryUrl" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-icon" title="Test Link">
+                <i data-feather="external-link"></i>
+              </a>
+            </div>
+
+            <!-- Additional Reference Links Container -->
+            <div id="drawerCustomRefLinksContainer" class="custom-ref-links-list">
+              <!-- Dynamically populated reference links -->
+            </div>
+          </div>
+
+          <!-- TAGS MANAGEMENT (Crucial Feature) -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label font-mono text-xs">TAGS FOR THIS ITEM</label>
+              <span class="font-mono text-xs text-tertiary">Click existing tags to toggle</span>
+            </div>
+
+            <!-- Active Tags Chips -->
+            <div class="active-tags-chips-container" id="drawerActiveTagsContainer">
+              <!-- Active chips with 'x' to remove -->
+            </div>
+
+            <!-- Quick Add Tag Input -->
+            <div class="add-tag-inline-row">
+              <div class="input-with-button">
+                <span class="input-prefix">#</span>
+                <input type="text" id="drawerNewTagInput" class="form-input text-xs" placeholder="Type tag name and press Enter (or comma to add multiple)...">
+                <button type="button" class="btn btn-sm" id="btnDrawerAddTag">
+                  <i data-feather="plus"></i> ADD TAG
+                </button>
+              </div>
+            </div>
+
+            <!-- Suggestion Cloud of Existing Tags -->
+            <div class="suggested-tags-section">
+              <span class="font-mono text-xs text-tertiary">EXISTING TAGS REPOSITORY:</span>
+              <div class="suggested-tags-cloud" id="drawerSuggestedTagsCloud">
+                <!-- Clickable tag suggestions -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Internal Specs / Notes -->
+          <div class="form-group">
+            <label class="form-label font-mono text-xs">INTERNAL NOTES / TECHNICAL SPECS</label>
+            <textarea id="drawerInputNotes" class="form-input form-textarea font-mono text-xs" rows="2" placeholder="Private notes, dimensions, part numbers, compatibility details..."></textarea>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Drawer Footer Actions -->
+      <div class="drawer-footer">
+        <div class="drawer-footer-left">
+          <button type="button" class="btn btn-sm btn-danger" id="btnDrawerDeleteItem">
+            <i data-feather="trash-2"></i> DELETE ITEM
+          </button>
+        </div>
+        <div class="drawer-footer-right">
+          <button type="button" class="btn btn-sm" id="btnDrawerCancel">CANCEL</button>
+          <button type="button" class="btn btn-sm" id="btnDrawerSaveAndPrev" title="Save and go to previous item (Alt + Left)">
+            <i data-feather="arrow-left"></i> SAVE & PREV
+          </button>
+          <button type="button" class="btn btn-sm" id="btnDrawerSaveAndNext" title="Save and go to next item (Alt + Right)">
+            SAVE & NEXT <i data-feather="arrow-right"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-primary" id="btnDrawerSave">
+            <i data-feather="check"></i> SAVE CHANGES
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ADD / EDIT GLOBAL TAG -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="globalTagModalOverlay">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title font-mono" id="globalTagModalTitle">RENAME TAG</h3>
+        <button class="btn btn-icon btn-sm" id="btnCloseGlobalTagModal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="globalTagForm">
+          <input type="hidden" id="modalOriginalTagName">
+          <div class="form-group">
+            <label class="form-label font-mono text-xs">CURRENT TAG NAME</label>
+            <input type="text" id="modalDisplayCurrentTag" class="form-input font-mono" readonly>
+          </div>
+          <div class="form-group">
+            <label class="form-label font-mono text-xs required">NEW TAG NAME</label>
+            <input type="text" id="modalNewTagNameInput" class="form-input font-mono" required placeholder="new-tag-name">
+          </div>
+          <p class="font-mono text-xs text-tertiary" id="modalTagUsageNote">This will update 0 items currently using this tag.</p>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" id="btnCancelGlobalTagModal">CANCEL</button>
+        <button class="btn btn-sm btn-primary" id="btnSubmitGlobalTagRename"><i data-feather="check"></i> APPLY RENAME</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: BULK TAG ASSIGNMENT -->
+  <!-- ========================================== -->
+  <div class="modal-overlay" id="bulkTagModalOverlay">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title font-mono" id="bulkTagModalTitle">BULK TAG ACTION</h3>
+        <button class="btn btn-icon btn-sm" id="btnCloseBulkTagModal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="font-mono text-xs mb-3" id="bulkTagTargetCount">Applying to 0 selected items:</p>
+        <div class="form-group">
+          <label class="form-label font-mono text-xs required" id="bulkTagInputLabel">TAG NAME(S)</label>
+          <input type="text" id="bulkTagInput" class="form-input font-mono" placeholder="tag1, tag2, tag3">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" id="btnCancelBulkTagModal">CANCEL</button>
+        <button class="btn btn-sm btn-primary" id="btnSubmitBulkTagAction"><i data-feather="check"></i> APPLY TO SELECTED</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Core Scripts -->
+  <script src="items-data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
