@@ -4,6 +4,8 @@
 
 const STORAGE_KEY = "wishlist_archive_catalog_v1";
 const THEME_KEY = "wishlist_theme_v1";
+const PRIORITY_KEY = "wishlist_custom_priorities_v1";
+const DEFAULT_PRIORITIES = ["Critical", "High", "Medium", "Low", "Wishlist", "Someday"];
 
 // State
 let items = [];
@@ -11,6 +13,31 @@ let filteredItems = [];
 let selectedItemIds = new Set();
 let currentEditingIndex = -1;
 let currentTab = "items-tab";
+
+// Priority Management Helpers
+function getCustomPriorities() {
+  const saved = localStorage.getItem(PRIORITY_KEY);
+  let list = [...DEFAULT_PRIORITIES];
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+    } catch (e) {
+      console.error("Failed to parse custom priorities", e);
+    }
+  }
+  // Ensure any priorities currently present on items are preserved in list
+  items.forEach(item => {
+    if (item.priority && !list.includes(item.priority)) {
+      list.push(item.priority);
+    }
+  });
+  return list;
+}
+
+function saveCustomPriorities(list) {
+  localStorage.setItem(PRIORITY_KEY, JSON.stringify(list));
+}
 
 // Filter State
 let searchQuery = "";
@@ -35,6 +62,7 @@ const tableShowingCount = document.getElementById("tableShowingCount");
 const tableTotalCount = document.getElementById("tableTotalCount");
 const tabItemsCount = document.getElementById("tabItemsCount");
 const tabTagsCount = document.getElementById("tabTagsCount");
+const tabPrioritiesCount = document.getElementById("tabPrioritiesCount");
 const adminHeaderStats = document.getElementById("adminHeaderStats");
 const selectAllCheckbox = document.getElementById("selectAllCheckbox");
 const bulkActionsBar = document.getElementById("bulkActionsBar");
@@ -87,6 +115,12 @@ const modalTagUsageNote = document.getElementById("modalTagUsageNote");
 const btnSubmitGlobalTagRename = document.getElementById("btnSubmitGlobalTagRename");
 const btnCloseGlobalTagModal = document.getElementById("btnCloseGlobalTagModal");
 const btnCancelGlobalTagModal = document.getElementById("btnCancelGlobalTagModal");
+
+// Priority Customization Elements
+const newPriorityLevelInput = document.getElementById("newPriorityLevelInput");
+const btnAddPriorityLevelSubmit = document.getElementById("btnAddPriorityLevelSubmit");
+const prioritiesListContainer = document.getElementById("prioritiesListContainer");
+const prioritiesSummaryCount = document.getElementById("prioritiesSummaryCount");
 
 // Bulk Tag Modal Elements
 const bulkTagModalOverlay = document.getElementById("bulkTagModalOverlay");
@@ -194,6 +228,7 @@ function renderAll() {
   filterAndSortItems();
   renderItemsTable();
   renderTagsTaxonomy();
+  renderPrioritiesManager();
   renderReferenceLinksTable();
   renderCategoryBatchManager();
   updateStatsCounters();
@@ -202,13 +237,15 @@ function renderAll() {
 
 function updateStatsCounters() {
   const allTags = getAllUniqueTags();
+  const priorities = getCustomPriorities();
   const totalItems = items.length;
   const totalTags = allTags.length;
 
   tabItemsCount.textContent = totalItems;
   tabTagsCount.textContent = totalTags;
+  if (tabPrioritiesCount) tabPrioritiesCount.textContent = priorities.length;
   tableTotalCount.textContent = totalItems;
-  adminHeaderStats.textContent = `${totalItems} ITEMS / ${totalTags} UNIQUE TAGS`;
+  adminHeaderStats.textContent = `${totalItems} ITEMS / ${totalTags} UNIQUE TAGS / ${priorities.length} PRIORITIES`;
 }
 
 function getAllUniqueTags() {
@@ -250,6 +287,16 @@ function populateDropdownFilters() {
   adminTagFilter.innerHTML = '<option value="ALL">TAG: ALL</option>' + 
     tags.map(t => `<option value="${escapeHtml(t)}">#${escapeHtml(t)}</option>`).join('');
   if (tags.includes(currentTag)) adminTagFilter.value = currentTag;
+
+  // Priority options dynamically populated from custom priorities
+  const priorities = getCustomPriorities();
+  const currentPriority = adminPriorityFilter.value;
+  adminPriorityFilter.innerHTML = '<option value="ALL">PRIORITY: ALL</option>' +
+    priorities.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p.toUpperCase())}</option>`).join('');
+  if (priorities.includes(currentPriority)) adminPriorityFilter.value = currentPriority;
+
+  // Drawer priority select options
+  drawerSelectPriority.innerHTML = priorities.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p.toUpperCase())}</option>`).join('');
 }
 
 // Filter and Sort Items
@@ -300,6 +347,14 @@ function filterAndSortItems() {
         return a.title.localeCompare(b.title);
       case "title-desc":
         return b.title.localeCompare(a.title);
+      case "priority-high": {
+        const pList = getCustomPriorities();
+        const aIdx = pList.indexOf(a.priority);
+        const bIdx = pList.indexOf(b.priority);
+        const aRank = aIdx === -1 ? 999 : aIdx;
+        const bRank = bIdx === -1 ? 999 : bIdx;
+        return aRank - bRank;
+      }
       case "price-desc":
         return (b.price_raw || 0) - (a.price_raw || 0);
       case "price-asc":
@@ -983,7 +1038,147 @@ function deleteGlobalTag(tagName, count) {
 }
 
 // ===================================================================
-// TAB 3: REFERENCE LINKS TABLE RENDERER
+// TAB 3: PRIORITY TAXONOMY & CUSTOMIZATION ENGINE
+// ===================================================================
+function renderPrioritiesManager() {
+  const priorities = getCustomPriorities();
+  const counts = {};
+  items.forEach(i => {
+    const p = i.priority || "Medium";
+    counts[p] = (counts[p] || 0) + 1;
+  });
+
+  if (tabPrioritiesCount) tabPrioritiesCount.textContent = priorities.length;
+  if (prioritiesSummaryCount) prioritiesSummaryCount.textContent = `${priorities.length} LEVELS`;
+
+  if (!prioritiesListContainer) return;
+
+  prioritiesListContainer.innerHTML = priorities.map((p, idx) => {
+    const count = counts[p] || 0;
+    const isFirst = idx === 0;
+    const isLast = idx === priorities.length - 1;
+
+    return `
+      <div class="priority-level-card" data-priority="${escapeHtml(p)}">
+        <div class="priority-card-left">
+          <span class="priority-rank-badge font-mono">RANK #${idx + 1}</span>
+          <div class="priority-name-display">
+            <span>${escapeHtml(p)}</span>
+            <span class="priority-item-count">${count} item${count === 1 ? '' : 's'}</span>
+          </div>
+        </div>
+        <div class="priority-card-right">
+          <button type="button" class="btn btn-sm btn-icon btn-move-order" onclick="movePriorityOrder(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.25;cursor:not-allowed;"' : ''} title="Move Up (Higher Priority)">
+            <i data-feather="chevron-up"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-icon btn-move-order" onclick="movePriorityOrder(${idx}, 1)" ${isLast ? 'disabled style="opacity:0.25;cursor:not-allowed;"' : ''} title="Move Down (Lower Priority)">
+            <i data-feather="chevron-down"></i>
+          </button>
+          <button type="button" class="btn btn-sm" onclick="promptRenamePriority('${escapeHtml(p)}')">
+            <i data-feather="edit-2"></i> Rename
+          </button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="promptDeletePriority('${escapeHtml(p)}', ${count})">
+            <i data-feather="trash-2"></i> Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  feather.replace();
+}
+
+function addCustomPriorityLevel() {
+  const input = newPriorityLevelInput;
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  const priorities = getCustomPriorities();
+  const formatted = raw.charAt(0).toUpperCase() + raw.slice(1);
+
+  if (priorities.some(p => p.toLowerCase() === formatted.toLowerCase())) {
+    alert(`Priority level "${formatted}" already exists!`);
+    return;
+  }
+
+  priorities.push(formatted);
+  saveCustomPriorities(priorities);
+  input.value = "";
+  renderAll();
+  showToast(`Added priority tier: "${formatted}"`);
+}
+
+function promptRenamePriority(oldName) {
+  const newName = prompt(`Rename priority level "${oldName}" across all catalog items to:`, oldName);
+  if (!newName || !newName.trim() || newName.trim() === oldName) return;
+
+  const clean = newName.trim().charAt(0).toUpperCase() + newName.trim().slice(1);
+  const priorities = getCustomPriorities();
+
+  const idx = priorities.indexOf(oldName);
+  if (idx !== -1) {
+    priorities[idx] = clean;
+  } else {
+    priorities.push(clean);
+  }
+  saveCustomPriorities(priorities);
+
+  let updatedCount = 0;
+  items.forEach(item => {
+    if (item.priority === oldName) {
+      item.priority = clean;
+      updatedCount++;
+    }
+  });
+
+  saveData();
+  renderAll();
+  showToast(`Renamed priority to "${clean}" across ${updatedCount} items!`);
+}
+
+function promptDeletePriority(name, count) {
+  const priorities = getCustomPriorities();
+  if (priorities.length <= 1) {
+    alert("You must keep at least 1 priority level in the catalog.");
+    return;
+  }
+
+  if (confirm(`Delete priority tier "${name}"? ${count > 0 ? `(${count} items with this priority will be reassigned to "${priorities[0]}")` : ''}`)) {
+    const updatedPriorities = priorities.filter(p => p !== name);
+    saveCustomPriorities(updatedPriorities);
+
+    if (count > 0) {
+      const fallback = updatedPriorities[0] || "Medium";
+      items.forEach(item => {
+        if (item.priority === name) {
+          item.priority = fallback;
+        }
+      });
+      saveData();
+    }
+
+    renderAll();
+    showToast(`Deleted priority "${name}".`);
+  }
+}
+
+function movePriorityOrder(index, direction) {
+  const priorities = getCustomPriorities();
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= priorities.length) return;
+
+  const temp = priorities[index];
+  priorities[index] = priorities[targetIndex];
+  priorities[targetIndex] = temp;
+
+  saveCustomPriorities(priorities);
+  renderAll();
+  showToast(`Updated precedence hierarchy!`);
+}
+
+// ===================================================================
+// TAB 4: REFERENCE LINKS TABLE RENDERER
 // ===================================================================
 function renderReferenceLinksTable() {
   let html = "";
@@ -1361,6 +1556,15 @@ function setupEventListeners() {
   btnSubmitGlobalTagRename.addEventListener("click", submitGlobalTagRename);
   btnCloseGlobalTagModal.addEventListener("click", () => globalTagModalOverlay.classList.remove("active"));
   btnCancelGlobalTagModal.addEventListener("click", () => globalTagModalOverlay.classList.remove("active"));
+
+  // Priority Level Creation
+  btnAddPriorityLevelSubmit?.addEventListener("click", addCustomPriorityLevel);
+  newPriorityLevelInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addCustomPriorityLevel();
+    }
+  });
 
   // New Item & Backups
   document.getElementById("btnAdminAddNew").addEventListener("click", createNewBlankItem);

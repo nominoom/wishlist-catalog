@@ -4,6 +4,8 @@
 
 const STORAGE_KEY = "wishlist_archive_catalog_v1";
 const THEME_KEY = "wishlist_theme_v1";
+const PRIORITY_KEY = "wishlist_custom_priorities_v1";
+const DEFAULT_PRIORITIES = ["Critical", "High", "Medium", "Low", "Wishlist", "Someday"];
 
 // State
 let items = [];
@@ -14,6 +16,23 @@ let priorityFilter = "all";
 let currentView = "grid";
 let currentModalItemIndex = -1;
 let filteredItems = [];
+
+function getCustomPriorities() {
+  const saved = localStorage.getItem(PRIORITY_KEY);
+  let list = [...DEFAULT_PRIORITIES];
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+    } catch (e) {}
+  }
+  items.forEach(item => {
+    if (item.priority && !list.includes(item.priority)) {
+      list.push(item.priority);
+    }
+  });
+  return list;
+}
 
 // DOM Elements
 const catalogGrid = document.getElementById("catalogGrid");
@@ -124,11 +143,23 @@ function extractPrice(priceStr) {
 
 // Render everything
 function render() {
+  populatePriorityFilter();
   filterAndSortItems();
   renderCategories();
   renderGrid();
   updateStats();
   feather.replace();
+}
+
+function populatePriorityFilter() {
+  if (!prioritySelect) return;
+  const priorities = getCustomPriorities();
+  const curVal = prioritySelect.value || "all";
+  prioritySelect.innerHTML = '<option value="all">PRIORITY: ALL</option>' +
+    priorities.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p.toUpperCase())} ONLY</option>`).join('');
+  if (priorities.includes(curVal) || curVal === "all") {
+    prioritySelect.value = curVal;
+  }
 }
 
 // Filter and Sort
@@ -162,8 +193,14 @@ function filterAndSortItems() {
   } else if (sortBy === "price-desc") {
     filteredItems.sort((a, b) => (b.price_raw || 0) - (a.price_raw || 0));
   } else if (sortBy === "priority") {
-    const pWeight = { "High": 3, "Medium": 2, "Low": 1 };
-    filteredItems.sort((a, b) => (pWeight[b.priority] || 0) - (pWeight[a.priority] || 0));
+    const pList = getCustomPriorities();
+    filteredItems.sort((a, b) => {
+      const aIdx = pList.indexOf(a.priority);
+      const bIdx = pList.indexOf(b.priority);
+      const aRank = aIdx === -1 ? 999 : aIdx;
+      const bRank = bIdx === -1 ? 999 : bIdx;
+      return aRank - bRank;
+    });
   } else if (sortBy === "name-asc") {
     filteredItems.sort((a, b) => a.title.localeCompare(b.title));
   } else if (sortBy === "name-desc") {
@@ -284,15 +321,15 @@ function renderGrid() {
 // Update Top Statistics
 function updateStats() {
   const total = items.length;
-  const totalVal = items.reduce((sum, item) => sum + (item.price_raw || 0), 0);
-  const highPriority = items.filter(i => i.priority === "High").length;
+  const priorities = getCustomPriorities();
+  const topPriority = priorities[0] || "Critical";
+  const highPriority = items.filter(i => i.priority === topPriority || i.priority === "Critical" || i.priority === "High").length;
   const categories = new Set(items.map(i => i.category)).size;
 
-  statTotalItems.textContent = total;
-  statTotalValue.textContent = `$${totalVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  statHighPriority.textContent = highPriority;
-  statCategoriesCount.textContent = categories;
-  headerItemCount.textContent = `${filteredItems.length} OF ${total} ITEMS`;
+  if (statTotalItems) statTotalItems.textContent = total;
+  if (statHighPriority) statHighPriority.textContent = highPriority;
+  if (statCategoriesCount) statCategoriesCount.textContent = categories;
+  if (headerItemCount) headerItemCount.textContent = `${filteredItems.length} OF ${total} ITEMS`;
 }
 
 // Modal Logic
@@ -396,9 +433,15 @@ function enterModalEditMode() {
   const select = document.getElementById("editCategorySelect");
   select.innerHTML = allCategories.map(c => `<option value="${escapeHtml(c)}" ${c === item.category ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
 
+  // Populate priorities in select
+  const priorities = getCustomPriorities();
+  const pSelect = document.getElementById("editPrioritySelect");
+  if (pSelect) {
+    pSelect.innerHTML = priorities.map(p => `<option value="${escapeHtml(p)}" ${p === item.priority ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
+  }
+
   document.getElementById("editTitleInput").value = item.title || "";
   document.getElementById("editPriceInput").value = item.price || (item.price_raw ? `$${item.price_raw.toFixed(2)}` : "");
-  document.getElementById("editPrioritySelect").value = item.priority || "Medium";
   document.getElementById("editStatusSelect").value = item.status || "Wanted";
   document.getElementById("editDescInput").value = item.description || "";
   document.getElementById("editNotesInput").value = item.notes || "";
@@ -449,6 +492,12 @@ function openAddItemModal() {
   const allCategories = Array.from(new Set(items.map(i => i.category))).sort();
   const select = document.getElementById("newCategorySelect");
   select.innerHTML = allCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+  const priorities = getCustomPriorities();
+  const pSelect = document.getElementById("newPrioritySelect");
+  if (pSelect) {
+    pSelect.innerHTML = priorities.map((p, idx) => `<option value="${escapeHtml(p)}" ${idx === 0 ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
+  }
 
   addItemModalOverlay.classList.add("active");
   document.body.style.overflow = "hidden";

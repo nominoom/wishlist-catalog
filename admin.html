@@ -51,6 +51,9 @@
         <button class="admin-tab-btn" data-tab="tags-tab">
           <i data-feather="tag"></i> TAG TAXONOMY (<span id="tabTagsCount">0</span>)
         </button>
+        <button class="admin-tab-btn" data-tab="priorities-tab">
+          <i data-feather="flag"></i> PRIORITY LEVELS (<span id="tabPrioritiesCount">0</span>)
+        </button>
         <button class="admin-tab-btn" data-tab="links-tab">
           <i data-feather="link"></i> REFERENCE LINKS
         </button>
@@ -109,6 +112,7 @@
 
           <select id="adminSortSelect" class="custom-select admin-select">
             <option value="default">SORT: DEFAULT</option>
+            <option value="priority-high">PRIORITY: HIGHEST FIRST</option>
             <option value="title-asc">TITLE: A → Z</option>
             <option value="title-desc">TITLE: Z → A</option>
             <option value="price-desc">PRICE: HIGH → LOW</option>
@@ -226,7 +230,45 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 3: REFERENCE LINKS MANAGER -->
+    <!-- TAB 3: PRIORITY LEVELS & CUSTOM TAXONOMY -->
+    <!-- ========================================== -->
+    <section id="priorities-tab" class="admin-tab-content">
+      <div class="tags-manager-header">
+        <div>
+          <h2 class="section-title">PRIORITY LEVELS CUSTOMIZATION</h2>
+          <p class="section-desc">Create custom priority levels, reorder sorting hierarchy (highest to lowest), rename tiers across all items, or delete levels.</p>
+        </div>
+      </div>
+
+      <!-- Add New Priority Card -->
+      <div class="admin-card tag-create-box">
+        <div class="tag-create-form">
+          <div class="form-group flex-1">
+            <label class="form-label font-mono">CREATE NEW PRIORITY LEVEL</label>
+            <div class="input-with-button">
+              <input type="text" id="newPriorityLevelInput" class="form-input font-mono" placeholder="e.g. Critical, Must Have, Grail, Tier 1, Optional">
+              <button class="btn btn-sm btn-primary" id="btnAddPriorityLevelSubmit">
+                <i data-feather="plus-circle"></i> ADD PRIORITY LEVEL
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priorities Directory / List -->
+      <div class="priorities-container">
+        <div class="table-meta-row">
+          <span class="font-mono text-xs">PRECEDENCE HIERARCHY (DRAG/REORDER DETERMINES "PRIORITY: HIGH FIRST" SORTING)</span>
+          <span class="font-mono text-xs" id="prioritiesSummaryCount">0 LEVELS</span>
+        </div>
+        <div class="priorities-list" id="prioritiesListContainer">
+          <!-- Dynamically populated priority level cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: REFERENCE LINKS MANAGER -->
     <!-- ========================================== -->
     <section id="links-tab" class="admin-tab-content">
       <div class="tags-manager-header">
