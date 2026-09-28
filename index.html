@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WISHLIST // ARCHIVE — Curated Wishlist & Catalog</title>
+  <meta name="description" content="Sharp, minimalist black-and-white wishlist catalog with custom categorization, rich descriptions, and item popout cards.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Feather Icons for sharp clean UI icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="header">
+    <div class="header-top">
+      <div class="brand-section">
+        <span class="brand-badge">CATALOG // 01</span>
+        <div>
+          <h1 class="brand-title">WISHLIST ARCHIVE</h1>
+        </div>
+        <span class="brand-sub font-mono" id="headerItemCount">72 ITEMS</span>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-sm" id="btnAddNewItem" title="Add New Item">
+          <i data-feather="plus"></i> ADD ITEM
+        </button>
+        <button class="btn btn-sm" id="btnExportImport" title="Backup or Import Data">
+          <i data-feather="download"></i> DATA / SYNC
+        </button>
+        <a href="https://www.amazon.com/hz/wishlist/ls/13M87V2D38MV9?ref_=list_d_wl_lfu_nav_7" target="_blank" rel="noopener" class="btn btn-sm" title="View Source Amazon Wishlist">
+          <i data-feather="external-link"></i> AMAZON LIST
+        </a>
+        <button class="btn btn-sm btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Contrast">
+          <i data-feather="sun" id="themeIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Ribbon -->
+    <div class="stats-ribbon">
+      <div class="stats-container">
+        <div class="stat-group">
+          <div class="stat-item">
+            <span class="stat-label">TOTAL ITEMS:</span>
+            <span class="stat-value" id="statTotalItems">72</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">EST. VALUE:</span>
+            <span class="stat-value" id="statTotalValue">$0.00</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">HIGH PRIORITY:</span>
+            <span class="stat-value" id="statHighPriority">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">CATEGORIES:</span>
+            <span class="stat-value" id="statCategoriesCount">0</span>
+          </div>
+        </div>
+
+        <div class="stat-group">
+          <button class="btn btn-sm" id="btnQuickReset" style="border-style: dotted;" title="Reset edits to original Amazon list">
+            <i data-feather="rotate-ccw"></i> RESET DEFAULTS
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls Section -->
+  <section class="controls-section">
+    <!-- Search and Controls Row -->
+    <div class="search-filter-row">
+      <div class="search-box">
+        <i data-feather="search" class="search-icon"></i>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by name, description, tags, ASIN..." autocomplete="off">
+        <span class="search-shortcut">/</span>
+      </div>
+
+      <div class="sort-select-wrapper">
+        <select id="sortSelect" class="custom-select">
+          <option value="default">SORT: DEFAULT</option>
+          <option value="price-asc">PRICE: LOW TO HIGH</option>
+          <option value="price-desc">PRICE: HIGH TO LOW</option>
+          <option value="priority">PRIORITY: HIGH FIRST</option>
+          <option value="name-asc">NAME: A TO Z</option>
+          <option value="name-desc">NAME: Z TO A</option>
+        </select>
+      </div>
+
+      <div class="sort-select-wrapper">
+        <select id="priorityFilter" class="custom-select">
+          <option value="all">PRIORITY: ALL</option>
+          <option value="High">HIGH ONLY</option>
+          <option value="Medium">MEDIUM ONLY</option>
+          <option value="Low">LOW ONLY</option>
+        </select>
+      </div>
+
+      <div class="view-toggles">
+        <button class="view-btn active" data-view="grid" title="Standard Grid View">
+          <i data-feather="grid"></i>
+        </button>
+        <button class="view-btn" data-view="dense" title="Dense Grid View">
+          <i data-feather="layout"></i>
+        </button>
+        <button class="view-btn" data-view="list" title="Compact List View">
+          <i data-feather="list"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="category-pills-row" id="categoryPillsContainer">
+      <!-- Injected via JavaScript -->
+    </div>
+  </section>
+
+  <!-- Main Catalog Grid -->
+  <main class="main-container">
+    <div class="catalog-grid" id="catalogGrid">
+      <!-- Product Cards Injected via JavaScript -->
+    </div>
+  </main>
+
+  <!-- Item Detail Popout Modal -->
+  <div class="modal-overlay" id="itemModalOverlay">
+    <div class="modal-card" id="itemModalCard">
+      <div class="modal-header">
+        <div class="modal-breadcrumbs">
+          <span id="modalCategoryBreadcrumb">CATEGORY</span>
+          <span>//</span>
+          <span id="modalAsinBreadcrumb">ASIN</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <div class="modal-nav-arrows">
+            <button class="btn btn-sm btn-icon" id="modalPrevBtn" title="Previous Item (Left Arrow / J)">
+              <i data-feather="chevron-left"></i>
+            </button>
+            <button class="btn btn-sm btn-icon" id="modalNextBtn" title="Next Item (Right Arrow / K)">
+              <i data-feather="chevron-right"></i>
+            </button>
+          </div>
+          <button class="modal-close-btn" id="modalCloseBtn" title="Close (ESC)">
+            <i data-feather="x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body" id="modalBody">
+        <!-- Gallery Pane -->
+        <div class="modal-gallery-pane">
+          <img src="" alt="Product" id="modalImage" class="modal-main-img">
+        </div>
+
+        <!-- Info & Edit Pane -->
+        <div class="modal-info-pane">
+          <!-- View Mode -->
+          <div id="modalViewSection">
+            <div class="modal-title-row">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div class="modal-price-tag" id="modalPrice">$0.00</div>
+                <div style="display:flex; gap:0.5rem;">
+                  <span class="card-badge-priority" id="modalPriorityBadge">HIGH</span>
+                  <span class="card-badge-status" id="modalStatusBadge">WANTED</span>
+                </div>
+              </div>
+              <h2 class="modal-title-text" id="modalTitle">Product Title</h2>
+            </div>
+
+            <div class="modal-meta-grid" style="margin: 1.25rem 0;">
+              <div>
+                <div class="meta-field-label">CATEGORY</div>
+                <div class="meta-field-val" id="modalCategoryVal">Robotics</div>
+              </div>
+              <div>
+                <div class="meta-field-label">ASIN / ID</div>
+                <div class="meta-field-val" id="modalAsinVal">B0...</div>
+              </div>
+            </div>
+
+            <div class="modal-description-section">
+              <div class="section-label">
+                <span>DESCRIPTION</span>
+              </div>
+              <p class="modal-desc-content" id="modalDescriptionText"></p>
+            </div>
+
+            <div class="modal-description-section" id="modalNotesSection" style="margin-top: 1rem;">
+              <div class="section-label">NOTES & REASONING</div>
+              <div class="modal-notes-box" id="modalNotesText"></div>
+            </div>
+
+            <div class="modal-description-section" style="margin-top: 1rem;">
+              <div class="section-label">TAGS</div>
+              <div class="modal-tags-container" id="modalTagsContainer"></div>
+            </div>
+
+            <div class="modal-action-bar">
+              <a href="#" target="_blank" rel="noopener" id="modalAmazonLink" class="btn btn-primary" style="flex:1; justify-content:center;">
+                <i data-feather="shopping-bag"></i> VIEW ON AMAZON
+              </a>
+              <button class="btn" id="modalEditBtn">
+                <i data-feather="edit-2"></i> EDIT DETAILS
+              </button>
+            </div>
+          </div>
+
+          <!-- Edit Mode Form -->
+          <div id="modalEditSection" style="display:none; flex-direction:column; gap:1rem;">
+            <div class="section-label">
+              <span>EDITING ITEM DETAILS</span>
+            </div>
+
+            <div class="edit-form-group">
+              <label class="meta-field-label">TITLE</label>
+              <input type="text" id="editTitleInput" class="edit-input">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div class="edit-form-group">
+                <label class="meta-field-label">PRICE ($ USD)</label>
+                <input type="text" id="editPriceInput" class="edit-input" placeholder="$29.99">
+              </div>
+              <div class="edit-form-group">
+                <label class="meta-field-label">CATEGORY</label>
+                <select id="editCategorySelect" class="edit-select"></select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div class="edit-form-group">
+                <label class="meta-field-label">PRIORITY</label>
+                <select id="editPrioritySelect" class="edit-select">
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+              <div class="edit-form-group">
+                <label class="meta-field-label">STATUS</label>
+                <select id="editStatusSelect" class="edit-select">
+                  <option value="Wanted">Wanted</option>
+                  <option value="Purchased">Purchased</option>
+                  <option value="Researching">Researching</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="edit-form-group">
+              <label class="meta-field-label">DESCRIPTION</label>
+              <textarea id="editDescInput" class="edit-textarea" placeholder="Detailed product description..."></textarea>
+            </div>
+
+            <div class="edit-form-group">
+              <label class="meta-field-label">CUSTOM NOTES / SPECS</label>
+              <input type="text" id="editNotesInput" class="edit-input" placeholder="Why I need this, dimensions, compatibility...">
+            </div>
+
+            <div class="edit-form-group">
+              <label class="meta-field-label">TAGS (COMMA SEPARATED)</label>
+              <input type="text" id="editTagsInput" class="edit-input" placeholder="ESP32, Robotics, Fast Shipping">
+            </div>
+
+            <div class="edit-form-group">
+              <label class="meta-field-label">IMAGE URL</label>
+              <input type="text" id="editImageInput" class="edit-input">
+            </div>
+
+            <div class="modal-action-bar">
+              <button class="btn btn-primary" id="btnSaveEdit" style="flex:1; justify-content:center;">
+                <i data-feather="check"></i> SAVE CHANGES
+              </button>
+              <button class="btn" id="btnCancelEdit">
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Item Modal -->
+  <div class="modal-overlay" id="addItemModalOverlay">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <div class="modal-breadcrumbs">
+          <span>WISHLIST ARCHIVE</span>
+          <span>//</span>
+          <span>ADD NEW ITEM</span>
+        </div>
+        <button class="modal-close-btn" id="closeAddItemModalBtn">
+          <i data-feather="x"></i>
+        </button>
+      </div>
+
+      <div style="padding: 2rem; overflow-y:auto;">
+        <form id="addNewItemForm" style="display:flex; flex-direction:column; gap:1rem;">
+          <div class="edit-form-group">
+            <label class="meta-field-label">PRODUCT TITLE *</label>
+            <input type="text" id="newTitleInput" class="edit-input" required placeholder="Product Title">
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="edit-form-group">
+              <label class="meta-field-label">PRICE ($ USD)</label>
+              <input type="text" id="newPriceInput" class="edit-input" placeholder="$29.99">
+            </div>
+            <div class="edit-form-group">
+              <label class="meta-field-label">CATEGORY</label>
+              <select id="newCategorySelect" class="edit-select"></select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="edit-form-group">
+              <label class="meta-field-label">PRIORITY</label>
+              <select id="newPrioritySelect" class="edit-select">
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="edit-form-group">
+              <label class="meta-field-label">AMAZON URL / ASIN</label>
+              <input type="text" id="newUrlInput" class="edit-input" placeholder="https://amazon.com/dp/...">
+            </div>
+          </div>
+
+          <div class="edit-form-group">
+            <label class="meta-field-label">IMAGE URL</label>
+            <input type="text" id="newImageInput" class="edit-input" placeholder="https://m.media-amazon.com/images/I/...">
+          </div>
+
+          <div class="edit-form-group">
+            <label class="meta-field-label">DESCRIPTION</label>
+            <textarea id="newDescInput" class="edit-textarea" placeholder="Item description..."></textarea>
+          </div>
+
+          <div class="edit-form-group">
+            <label class="meta-field-label">TAGS (COMMA SEPARATED)</label>
+            <input type="text" id="newTagsInput" class="edit-input" placeholder="Electronics, Setup, Minimal">
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1rem;">
+            <button type="button" class="btn" id="cancelAddItemBtn">CANCEL</button>
+            <button type="submit" class="btn btn-primary">ADD TO CATALOG</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export / Import Modal -->
+  <div class="modal-overlay" id="dataSyncModalOverlay">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <div class="modal-breadcrumbs">
+          <span>DATA ARCHIVE & BACKUP</span>
+        </div>
+        <button class="modal-close-btn" id="closeDataModalBtn">
+          <i data-feather="x"></i>
+        </button>
+      </div>
+
+      <div style="padding: 2rem; display:flex; flex-direction:column; gap:1.5rem;">
+        <div>
+          <div class="section-label" style="margin-bottom:0.5rem;">EXPORT CATALOG DATA</div>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+            Download your current customized wishlist data, including custom categories, edited descriptions, and notes.
+          </p>
+          <div style="display:flex; gap:0.75rem;">
+            <button class="btn btn-sm" id="btnExportJSON">
+              <i data-feather="download"></i> DOWNLOAD JSON
+            </button>
+            <button class="btn btn-sm" id="btnExportMarkdown">
+              <i data-feather="file-text"></i> EXPORT MARKDOWN
+            </button>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border-color); padding-top:1.5rem;">
+          <div class="section-label" style="margin-bottom:0.5rem;">IMPORT CATALOG DATA</div>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+            Load a previously exported JSON catalog file.
+          </p>
+          <input type="file" id="importFileInput" accept=".json" style="display:none;">
+          <button class="btn btn-sm" id="btnTriggerImport">
+            <i data-feather="upload"></i> SELECT JSON FILE TO IMPORT
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="items-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
